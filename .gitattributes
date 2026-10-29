@@ -1,0 +1,11 @@
+# 换行符统一：shell 脚本必须 LF，否则在服务器上直接执行会死在 shebang 上
+# （内核会拿 "bash\r" 当解释器路径）。install.sh 里那个 crlf-guard 只是兜底，
+# 从仓库下载的文件本来就该是 LF。
+* text=auto
+*.sh    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+
+# Windows 侧的东西保持 CRLF
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
