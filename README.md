@@ -1,4 +1,18 @@
-# vultr_xray
+## 客户端下载
+
+官方下载地址 [https://github.com/2dust/v2rayN/releases/](https://github.com/2dust/v2rayN/releases/)
+
+Reality 要 v2rayN 6.x / v2rayNG 1.8+；老版本能导入但连不上
+
+
+
+
+
+
+
+## vultr_xray
+
+
 
 在 Vultr 上手动开一台 Ubuntu，跑一条命令装好 **Xray（VLESS + Vision + Reality）**，
 拿到一条能直接导入 v2rayN 的 `vless://` 链接。
@@ -101,8 +115,8 @@ cd ping_vps
 
 **A. 本地一条命令跑完**（不用先登进去）
 
-```bash
-ssh -i ~/.ssh/vultr root@<你的IP> 'curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh'
+```powershell
+ssh -i $HOME\.ssh\vultr root@<你的IP> "curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh"
 ```
 
 **B. 或者先登进去，在里面跑**
@@ -123,8 +137,12 @@ bash /tmp/i.sh
 >
 > 别贴到聊天窗口、截图或仓库里 —— 它和私钥一样，是这台机器的最高权限。
 
-Windows 自带的是 `ssh.exe`，`~/.ssh/vultr` 能直接展开；在 Git Bash / WSL 里同样适用。
-PowerShell 里如果嫌 `~` 不展开，写成 `ssh -i $HOME\.ssh\vultr root@<你的IP>`。
+**A 那条命令的引号是故意写成双引号的。** PowerShell / cmd 里套单引号，那对引号经常传不到远端，
+拿到的报错是 `bash: -c: line 1: unexpected EOF while looking for matching '` ——
+看着像服务器坏了，其实连接和认证都已经成功，只是远端收到了一个没闭合的字符串，
+一个字节都没执行。就这样写，或者干脆走 B（先 `ssh` 进去，两条命令分开敲，一个引号都不用）。
+
+Git Bash / WSL 里 `~/.ssh/vultr` 和单引号都能用，两种写法等价。
 
 `curl` 是在**服务器上**执行的，取的是服务器到 GitHub 的连通性，和你本地能不能访问
 `raw.githubusercontent.com` 无关。
