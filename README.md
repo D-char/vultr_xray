@@ -10,12 +10,32 @@
 |---|---|
 | [`step_vps_install/`](step_vps_install/) | 在服务器上跑，装好 Xray 并打印节点链接 |
 | [`ping_vps/`](ping_vps/) | 在本地跑，判断这个 IP 从国内还能不能连 |
+| [`gen_ssh_key/`](gen_ssh_key/) | 在本地跑，生成 ed25519 密钥对（第 1 步，只做一次） |
 
 ---
 
 ## 使用流程
 
-### 1. 开机器
+### 1. 生成本地 SSH key（没有才做，一对 key 反复用）
+
+后面每一条 `ssh` 都靠它登录，所以先把它备好。
+
+```powershell
+cd gen_ssh_key
+.\New-SshKey.ps1
+```
+
+生成两个文件：`C:\Users\<你>\.ssh\vultr`（**私钥**，留在本地）和 `vultr.pub`（**公钥**，要贴出去）。
+脚本会把公钥整行放进剪贴板，并打印该粘到哪。
+
+**把公钥放到 Vultr 账号上**（贴 `.pub` 那个，私钥不出本机）：
+
+Vultr 控制台 → 右上头像 → **Account** → **SSH Keys** → **Add SSH Key** ——
+名字随便起（比如 `local-win`），Key 里粘上面那一行，保存。之后所有新建实例都能选中它。
+
+> 已经加过 key 的直接跳过这一步，从第 2 步开始。
+
+### 2. 开机器
 
 Vultr 上新建实例，注意三点：
 
@@ -23,14 +43,16 @@ Vultr 上新建实例，注意三点：
 |---|---|
 | 系统 | **Ubuntu 24.04 / 22.04** 或 Debian 12（没有 `apt-get` 脚本会直接拒绝） |
 | 机房 | 首尔 `icn`、东京 `nrt`、新加坡 `sgp` 延迟较低 |
-| SSH Keys | **留空，不选任何 key** —— 这样 Vultr 才会生成 root 密码 |
+| SSH Keys | **选中第 1 步加的那把 key**（列表里就是你起的那个名字，可以多选） |
 
-部署完成后在详情页拿两样东西：**公网 IP** 和 **Root Password**（点眼睛图标显示，可直接复制）。
+部署完成后在详情页只需要拿一样东西：**公网 IP**。
 
-> 这个密码是 Vultr 随机生成、只在这里显示一次的。别贴到聊天窗口、截图或仓库里 ——
-> 它就是这台机器的最高权限。
+> 选了 SSH Key，Vultr 就不再生成 root 密码 —— 详情页 **Root Password** 那栏是空的，点眼睛也是空的。
+> 这是有意的：没有密码，就没有可爆破的入口。代价是 **View Console 也进不去**（它要密码），
+> 而这个仓库默认装完会封掉 22，View Console 正是那之后唯一的入口。所以**登录后先补一个密码**，
+> 见第 4 步。
 
-### 2. 先测墙（拿到 IP 后的第一个动作）
+### 3. 先测墙（拿到 IP 后的第一个动作）
 
 **别急着装。** 先花 30 秒确认这个 IP 从国内通不通，再决定要不要往上装东西。
 不确定就先装，装完才发现 IP 是死的，那 3 分钟和一次 Destroy 都白花了。
@@ -75,22 +97,34 @@ cd ping_vps
 装完（下一步）之后**再跑一次同一个命令**，那时 443 上有 Xray 了，应该拿到
 `[OK] TLS 握手 HTTP 200` + `结论：没被墙，链路可用`——那才是有决定性证据的一次。
 
-### 3. 登录并装
+### 4. 登录并装
 
 **A. 本地一条命令跑完**（不用先登进去）
 
 ```bash
-ssh root@<IP> 'curl -fsSL https://raw.githubusercontent.com/<用户名>/<仓库>/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh'
+ssh -i ~/.ssh/vultr root@<你的IP> 'curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh'
 ```
 
 **B. 或者先登进去，在里面跑**
 
 ```bash
-ssh root@<IP>
-# 第一次连问 yes/no 输 yes；输密码时屏幕什么都不显示，是正常的
-curl -fsSL https://raw.githubusercontent.com/<用户名>/<仓库>/main/step_vps_install/install.sh -o /tmp/i.sh
+ssh -i ~/.ssh/vultr root@<你的IP>
+# 第一次连问 yes/no 输 yes（把新 IP 的指纹记到本地）；用 key 登录不会再问密码
+curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh
 bash /tmp/i.sh
 ```
+
+> **装之前先补一个 root 密码。** 第 2 步选了 key，Vultr 就没给你密码；装完封口之后
+> 唯一还能进机器的是 View Console，它要的正是密码。登进去敲一次：
+>
+> ```bash
+> echo 'root:自己起个密码' | chpasswd
+> ```
+>
+> 别贴到聊天窗口、截图或仓库里 —— 它和私钥一样，是这台机器的最高权限。
+
+Windows 自带的是 `ssh.exe`，`~/.ssh/vultr` 能直接展开；在 Git Bash / WSL 里同样适用。
+PowerShell 里如果嫌 `~` 不展开，写成 `ssh -i $HOME\.ssh\vultr root@<你的IP>`。
 
 `curl` 是在**服务器上**执行的，取的是服务器到 GitHub 的连通性，和你本地能不能访问
 `raw.githubusercontent.com` 无关。
@@ -107,7 +141,7 @@ bash /tmp/i.sh
 -h                 # 看帮助
 ```
 
-### 4. 拿链接
+### 5. 拿链接
 
 成功的标志是这两行（缺第二行就不算成功）：
 
@@ -123,16 +157,16 @@ bash /tmp/i.sh
 - 第二行会起一个临时客户端，用**即将发给你的那条链接的凭据**真请求一次网页。
   只有它绿，才说明这条 `vless://` 导入就能用。
 
-### 5. 回本地导入
+### 6. 回本地导入
 
 1. v2rayN → 服务器 → 从剪贴板导入批量 URL
 2. `Ctrl+E` 设为活动节点
 3. 托盘图标 → 系统代理 → 自动配置系统代理
 4. 打开 google.com 验证
 
-连不上就回到[第 2 步](#2-先测墙拿到-ip-后的第一个动作)再测一次，
+连不上就回到[第 3 步](#3-先测墙拿到-ip-后的第一个动作)再测一次，
 确认是 IP 被墙（而不是链接写错、SNI 不对、端口没放行）之后回 Vultr 换 IP / 重建实例 ——
-不是继续折腾这台机器。重建完又是从第 1 步开始，新 IP 先测墙、再装。
+不是继续折腾这台机器。重建完从第 2 步开始就行（key 已经有了，不用再生成），新 IP 先测墙、再装。
 
 ---
 
@@ -152,7 +186,8 @@ bash /tmp/i.sh
 - 但**之后新的 SSH 连接再也进不来**。
 
 要再进机器只能用 Vultr 实例页的 **View Console**（走宿主机控制台通道，不经过虚拟机网络栈，
-root 密码照样能登）。想留着 SSH 就加 `--no-lockdown`。
+root 密码照样能登 —— 前提是[第 4 步](#4-登录并装)补过密码；只用 key 没设密码的话它进不去，
+这台机器之后就只有手里这把私钥能开了）。想留着 SSH 就加 `--no-lockdown`。
 
 后果之一是：**封口之后再跑测墙，`TCP 22` 会显示不通，这是正常的**，别当成被墙。
 看实际监听的那个端口和 TLS 握手结果就行；换过端口要一起带参数：
@@ -162,7 +197,12 @@ root 密码照样能登）。想留着 SSH 就加 `--no-lockdown`。
 ```
 
 「建机器 → 用 → destroy」这种用法下封口是最省事的做法：暴露窗口只有安装那 2~3 分钟，
-而且这期间 root 密码是随机生成的，爆破流量跟这台机器无关。
+这期间 22 上只认你带来的 key（没有私钥就进不去），封口之后连 22 都没了。
+
+不过[第 4 步](#4-登录并装)补的那个 root 密码，在 Vultr 的镜像里默认也能从 22 密码登录
+（`PermitRootLogin yes`）。想让它只在 View Console 里可用、不在公网上可用，照
+[step_vps_install/README.md](step_vps_install/README.md)第 6 节的 `00-no-password.conf` 关掉 SSH 密码登录 ——
+那是一个文件加 `systemctl restart ssh`，两分钟。
 
 ### Vultr 防火墙组要另外开
 

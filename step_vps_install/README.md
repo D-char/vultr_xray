@@ -51,7 +51,7 @@ ssh root@45.76.1.1
 **在你自己的电脑上执行**（不用先登服务器）：
 
 ```bash
-ssh root@45.76.1.1 'curl -fsSL https://raw.githubusercontent.com/<用户名>/<仓库>/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh -y'
+ssh root@45.76.1.1 'curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh && bash /tmp/i.sh -y'
 ```
 
 这一条把全部做完：装依赖 → 装 Xray → 写配置 → 启动 → 自检两次 → 把 `vless://` 链接打印在
@@ -66,7 +66,7 @@ ssh root@45.76.1.1 'curl -fsSL https://raw.githubusercontent.com/<用户名>/<�
 
 ```bash
 ssh root@45.76.1.1
-curl -fsSL https://raw.githubusercontent.com/<用户名>/<仓库>/main/step_vps_install/install.sh -o /tmp/i.sh
+curl -fsSL https://raw.githubusercontent.com/D-char/vultr_xray/main/step_vps_install/install.sh -o /tmp/i.sh
 bash /tmp/i.sh
 ```
 
